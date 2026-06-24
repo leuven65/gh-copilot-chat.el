@@ -763,7 +763,15 @@ wait for the fetch to complete."
               (gh-copilot-chat--get-model-choices-with-wait))))))))
 
 ;;;###autoload (autoload 'gh-copilot-chat-set-model "gh-copilot-chat" nil t)
-(defun gh-copilot-chat-set-model (model)
+(defun gh-copilot-chat-set-model ()
+  "Set the Copilot Chat model to MODEL for the current instance.
+Fetches available models from the API if not already fetched."
+  (interactive)
+  (call-interactively (if (eq gh-copilot-chat-backend 'lsp)
+                          #'gh-copilot-chat-lsp-select-model
+                        #'gh-copilot-chat-curl-set-model)))
+
+(defun gh-copilot-chat-curl-set-model (model)
   "Set the Copilot Chat model to MODEL for the current instance.
 Fetches available models from the API if not already fetched."
   (interactive

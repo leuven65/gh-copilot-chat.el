@@ -75,7 +75,8 @@
   (lambda (symbol value)
     (set-default-toplevel-value symbol value)
     (pcase value
-      (`curl (require 'gh-copilot-chat-curl))))
+      (`curl (require 'gh-copilot-chat-curl))
+      (`lsp (require 'gh-copilot-chat-lsp))))
   :group 'gh-copilot-chat)
 
 (provide 'gh-copilot-chat)
