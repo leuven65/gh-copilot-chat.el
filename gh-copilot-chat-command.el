@@ -596,7 +596,9 @@ Optional argument KEEP-BUFFERS if non-nil, preserve the current buffer list."
     (unless old-buffers
       (setf (gh-copilot-chat-buffers instance) nil))
     (gh-copilot-chat--display instance)
-    (gh-copilot-chat-list-refresh instance)))
+    (gh-copilot-chat-list-refresh instance)
+    (when-let* ((clean-fn (gh-copilot-chat-backend-clean-fn (gh-copilot-chat--get-backend))))
+      (funcall clean-fn instance))))
 
 (defun gh-copilot-chat-frontend-clean ()
   "Cleaning function."
