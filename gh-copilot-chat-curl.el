@@ -452,6 +452,7 @@ if the prompt is out of context."
 (cl-pushnew
  (make-gh-copilot-chat-backend
   :id 'curl
+  :select-model-fn nil
   :init-fn #'gh-copilot-chat--curl-init
   :clean-fn nil
   :login-fn #'gh-copilot-chat--curl-login

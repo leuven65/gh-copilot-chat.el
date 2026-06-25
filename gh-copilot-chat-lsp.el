@@ -723,6 +723,7 @@ a dedicated endpoint.  Returns nil to indicate unsupported."
 (cl-pushnew
  (make-gh-copilot-chat-backend
   :id 'lsp
+  :select-model-fn #'gh-copilot-chat-lsp-select-model
   :init-fn #'gh-copilot-chat-lsp--init
   :clean-fn #'gh-copilot-chat-lsp--clean
   :login-fn #'gh-copilot-chat-lsp--login

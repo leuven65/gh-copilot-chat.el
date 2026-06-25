@@ -37,6 +37,7 @@
  gh-copilot-chat-backend
  "Struct for Copilot chat backend."
  id
+ select-model-fn
  init-fn
  clean-fn
  login-fn

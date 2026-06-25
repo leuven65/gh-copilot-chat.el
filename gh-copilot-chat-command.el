@@ -769,9 +769,11 @@ wait for the fetch to complete."
   "Set the Copilot Chat model to MODEL for the current instance.
 Fetches available models from the API if not already fetched."
   (interactive)
-  (call-interactively (if (eq gh-copilot-chat-backend 'lsp)
-                          #'gh-copilot-chat-lsp-select-model
-                        #'gh-copilot-chat-curl-set-model)))
+  (if-let* ((select-model-fn (gh-copilot-chat-backend-select-model-fn
+                              (gh-copilot-chat--get-backend))))
+      (call-interactively select-model-fn)
+    (call-interactively #'gh-copilot-chat-curl-set-model)
+    ))
 
 (defun gh-copilot-chat-curl-set-model (model)
   "Set the Copilot Chat model to MODEL for the current instance.
