@@ -718,6 +718,19 @@ a dedicated endpoint.  Returns nil to indicate unsupported."
     (setq copilot-chat-model model-id)
     (message "LSP Chat model set to %s" model-id)))
 
+(defun gh-copilot-chat-lsp--current-ask (msg)
+  (let ((instance (gh-copilot-chat--current-instance))
+        (callback (gh-copilot-chat-lsp--current-callback)))
+    (gh-copilot-chat--display instance)
+    (gh-copilot-chat-lsp--ask instance
+                              msg
+                              callback
+                              nil)))
+
+(define-advice copilot-chat-slash-command (:around (oldfun) gh)
+  (cl-letf (((symbol-function 'copilot-chat) #'gh-copilot-chat-lsp--current-ask))
+    (funcall oldfun)))
+
 ;;
 ;; Backend registration
 ;;
