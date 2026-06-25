@@ -45,24 +45,9 @@
 (declare-function flymake-diagnostic-beg "flymake")
 (declare-function flymake-diagnostic-text "flymake")
 
-;;
-;; User configuration
-;;
-
-(defcustom gh-copilot-chat-lsp-model "auto"
-  "The model to use for LSP Copilot Chat.
-When nil, the server picks the default model."
-  :type '(choice (const :tag "Default" nil)
-                 (string :tag "Model ID"))
-  :group 'gh-copilot-chat-lsp
-  :package-version '(copilot . "0.5"))
-
-(defcustom gh-copilot-chat-use-agent-mode nil
-  "When non-nil, use Agent mode for Copilot Chat conversations.
-Agent mode allows Copilot to execute tools such as shell commands
-and file edits."
-  :type 'boolean
-  :group 'gh-copilot-chat-lsp)
+;; Use following variables to set
+;; `copilot-chat-model'
+;; `copilot-chat-use-agent-mode'
 
 ;;
 ;; cleanup copilot-chat
@@ -363,13 +348,11 @@ server is running, and installs the progress notification handler."
   ;; Handlers must be registered before sending any requests, otherwise we
   (gh-copilot-chat-lsp--install-handler)
   ;; Agent mode requires tool registration upfront, so do it at init time.
-  (when gh-copilot-chat-use-agent-mode
+  (when copilot-chat-use-agent-mode
     (gh-copilot-chat--register-tools))
 
   ;; Set the model value for this instance to the default
-  (setf (gh-copilot-chat-model instance) (or gh-copilot-chat-lsp-model
-                                             (copilot-chat--default-model)))
-  )
+  (setf (gh-copilot-chat-model instance) (copilot-chat--model)))
 
 ;;
 ;; Backend: clean
@@ -578,7 +561,8 @@ matching the protocol used by VS Code's Copilot Chat panel."
             ;; (when gh-copilot-chat-prompt
             ;;   (list :systemPrompt gh-copilot-chat-prompt))
             ;; Per-instance model selection
-            (list :model model) ; avoid error "[chat] Error processing turn Error: Model is not specified"
+            (when-let* ((model (copilot-chat--model)))
+              (list :model model))
             ;; Workspace folders — use copilot--path-to-uri for Windows support
             (list :workspaceFolders
                   (vconcat
@@ -587,7 +571,7 @@ matching the protocol used by VS Code's Copilot Chat panel."
                      (list (list :uri (copilot--path-to-uri root)
                                  :name (file-name-nondirectory
                                         (directory-file-name root)))))))
-            (when gh-copilot-chat-use-agent-mode
+            (when copilot-chat-use-agent-mode
               (list :chatMode "Agent"
                     :needToolCallConfirmation t))
             )
@@ -620,7 +604,7 @@ Sends `conversation/turn' to the Copilot Language Server."
            'conversation/turn
            (list :workDoneToken token
                  :conversationId (gh-copilot-chat-lsp-conversation-id backend)
-                 :model model ; avoid error "[chat] Error processing turn Error: Model is not specified"
+                 :model (copilot-chat--model) ; avoid error "[chat] Error processing turn Error: Model is not specified"
                  :message message
                  :source source)
            :success-fn
@@ -705,7 +689,7 @@ a dedicated endpoint.  Returns nil to indicate unsupported."
 (defun gh-copilot-chat-lsp--get-model ()
   (if-let* ((instance (gh-copilot-chat--current-instance)))
       (gh-copilot-chat-model instance)
-    gh-copilot-chat-lsp-model))
+    (copilot-chat--model)))
 
 (defun gh-copilot-chat-lsp--set-model (model-id)
   (if-let* ((instance (gh-copilot-chat--current-instance)))
@@ -713,7 +697,7 @@ a dedicated endpoint.  Returns nil to indicate unsupported."
       (progn (setf (gh-copilot-chat-model instance) model-id)
              (message "Copilot Chat model set to %s for current instance" model-id))
     ;; set global default
-    (setq gh-copilot-chat-lsp-model model-id)
+    (setq copilot-chat-model model-id)
     (message "LSP Chat model set to %s" model-id)))
 
 ;;
