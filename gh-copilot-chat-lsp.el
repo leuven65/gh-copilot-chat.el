@@ -195,7 +195,7 @@ processed; all others are ignored (handled by copilot.el's own handler)."
                          (propertize
                           (format "Follow-up: %s\n\n" copilot-chat--follow-up)
                           'face 'copilot-chat-follow-up-face))))
-            
+
             ;; Signal end-of-response to the frontend
             (funcall callback instance gh-copilot-chat--magic)
             ;; Record full response in instance history
@@ -366,7 +366,11 @@ server is running, and installs the progress notification handler."
     (gh-copilot-chat--register-tools))
 
   ;; Set the model value for this instance to the default
-  (setf (gh-copilot-chat-model instance) (copilot-chat--model)))
+  (setf (gh-copilot-chat-model instance) (copilot-chat--model))
+
+  ;; make compatible with copilot-chat
+  (setq-local copilot-chat--buffer-name (gh-copilot-chat-chat-buffer instance))
+  )
 
 ;;
 ;; Backend: clean
@@ -491,7 +495,7 @@ and reports ERR via CALLBACK using the standard (instance content) protocol."
     (funcall callback instance (format "**LSP Error:** %s" msg))
     (funcall callback instance gh-copilot-chat--magic)))
 
-(define-advice copilot-chat--insert-error (:override (error-msg)  gh) 
+(define-advice copilot-chat--insert-error (:override (error-msg)  gh)
   "Insert ERROR-MSG into the chat buffer with error styling."
   (gh-copilot-chat--callback (copilot-chat--format-error error-msg)))
 
@@ -562,7 +566,8 @@ Sends `conversation/create' to the Copilot Language Server,
 matching the protocol used by VS Code's Copilot Chat panel."
   (let ((backend (gh-copilot-chat--backend instance))
         (model (gh-copilot-chat-model instance))
-        (source (or source "panel")))
+        (source (or source "panel"))
+        (doc (copilot-chat--generate-context-doc)))
     (setf (gh-copilot-chat-lsp-request-id backend)
           (copilot--async-request
            'conversation/create
@@ -592,12 +597,16 @@ matching the protocol used by VS Code's Copilot Chat panel."
             (when copilot-chat-use-agent-mode
               (list :chatMode "Agent"
                     :needToolCallConfirmation t))
+            (when doc (list :doc doc))
+            (copilot-chat--references-param)
             )
            :success-fn ; it is not called in some cases, so also handle conversationId in progress handler
            (lambda (result)
              (gh-copilot-chat-lsp--handle-conversation-id backend result)
              (gh-copilot-chat-lsp--handle-model instance callback
                                                 (plist-get result :modelName))
+             (with-current-buffer (gh-copilot-chat-chat-buffer instance)
+               (copilot-chat--consume-references))
              )
            :error-fn
            (lambda (err)
@@ -616,15 +625,19 @@ TOKEN is the workDoneToken.  CALLBACK is the streaming callback.
 Sends `conversation/turn' to the Copilot Language Server."
   (let ((backend (gh-copilot-chat--backend instance))
         (model (gh-copilot-chat-model instance))
-        (source (or source "panel")))
+        (source (or source "panel"))
+        (doc (copilot-chat--generate-context-doc)))
     (setf (gh-copilot-chat-lsp-request-id backend)
           (copilot--async-request
            'conversation/turn
-           (list :workDoneToken token
-                 :conversationId (gh-copilot-chat-lsp-conversation-id backend)
-                 :model (copilot-chat--model) ; avoid error "[chat] Error processing turn Error: Model is not specified"
-                 :message message
-                 :source source)
+           (append (list :workDoneToken token
+                         :conversationId (gh-copilot-chat-lsp-conversation-id backend)
+                         :model (copilot-chat--model) ; avoid error "[chat] Error processing turn Error: Model is not specified"
+                         :message message
+                         :source source)
+                   (when doc (list :doc doc))
+                   (copilot-chat--references-param)
+                   )
            :success-fn
            (lambda (result)
              (when result
@@ -633,6 +646,8 @@ Sends `conversation/turn' to the Copilot Language Server."
                )
              (gh-copilot-chat-lsp--handle-model instance callback
                                                 (plist-get result :modelName))
+             (with-current-buffer (gh-copilot-chat-chat-buffer instance)
+               (copilot-chat--consume-references))
              )
            :error-fn
            (lambda (err)
