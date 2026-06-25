@@ -175,13 +175,27 @@ processed; all others are ignored (handled by copilot.el's own handler)."
            ;; ── Stream ends ──
            ((equal kind "end")
             (setf (gh-copilot-chat-lsp-streaming-p backend) nil)
+
             ;; print out followUp
-            (when-let* ((result (plist-get value :result))
-                        ((listp result))
-                        (copilot-chat--follow-up (plist-get result :followUp)))
-              (funcall callback instance
-                       (format "*** Follow-up\n%s\n" copilot-chat--follow-up))
-              )
+            (let* ((result (plist-get value :result))
+                   ;; The server normally sends an object here, but
+                   ;; guard against any other shape.
+                   (result (and (listp result) result))
+                   (copilot-chat--follow-up (plist-get result :followUp))
+                   (error-msg (copilot-chat--error-text
+                               (plist-get result :error))))
+              ;; Surface a turn-level error the server reports at the
+              ;; end, which would otherwise leave only an empty reply.
+              (when error-msg
+                (funcall callback instance
+                         (copilot-chat--format-error error-msg)))
+              (when (and (stringp copilot-chat--follow-up)
+                         (not (string-empty-p copilot-chat--follow-up)))
+                (funcall callback instance
+                         (propertize
+                          (format "Follow-up: %s\n\n" copilot-chat--follow-up)
+                          'face 'copilot-chat-follow-up-face))))
+            
             ;; Signal end-of-response to the frontend
             (funcall callback instance gh-copilot-chat--magic)
             ;; Record full response in instance history
@@ -476,6 +490,10 @@ and reports ERR via CALLBACK using the standard (instance content) protocol."
               (t (format "%S" err)))))
     (funcall callback instance (format "**LSP Error:** %s" msg))
     (funcall callback instance gh-copilot-chat--magic)))
+
+(define-advice copilot-chat--insert-error (:override (error-msg)  gh) 
+  "Insert ERROR-MSG into the chat buffer with error styling."
+  (gh-copilot-chat--callback (copilot-chat--format-error error-msg)))
 
 ;;
 ;; Backend: ask — main entry point
