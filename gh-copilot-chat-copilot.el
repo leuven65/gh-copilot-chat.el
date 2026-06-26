@@ -139,14 +139,14 @@ Optional argument TYPE is the type of the instance (nil or commit)."
           :spinner-index 0
           :spinner-status nil))
         (cached-models (gh-copilot-chat--load-models-from-cache)))
-    (when cached-models
-      (setf (gh-copilot-chat-connection-models gh-copilot-chat--connection)
-            cached-models)
-      (message "Loaded models from cache. %d models available."
-               (length cached-models)))
+    ;; (when cached-models
+    ;;   (setf (gh-copilot-chat-connection-models gh-copilot-chat--connection)
+    ;;         cached-models)
+    ;;   (message "Loaded models from cache. %d models available."
+    ;;            (length cached-models)))
 
-    ;; Schedule background model fetching with slight delay
-    (run-with-timer 2 nil #'gh-copilot-chat--fetch-models-async)
+    ;; ;; Schedule background model fetching with slight delay
+    ;; (run-with-timer 2 nil #'gh-copilot-chat--fetch-models-async)
 
     ;; init backend
     (let ((init-fn
