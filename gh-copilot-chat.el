@@ -68,7 +68,7 @@
       (`shell-maker (require 'gh-copilot-chat-shell-maker))))
   :group 'gh-copilot-chat)
 
-(defcustom gh-copilot-chat-backend 'curl
+(defcustom gh-copilot-chat-backend 'lsp
   "Copilot chat backend.  Can be `curl` or a custom on."
   :type '(choice (const :tag "lsp" lsp)
                  (const :tag "curl" curl)
