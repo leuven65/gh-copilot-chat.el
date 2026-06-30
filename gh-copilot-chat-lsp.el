@@ -584,8 +584,7 @@ matching the protocol used by VS Code's Copilot Chat panel."
             ;; (when gh-copilot-chat-prompt
             ;;   (list :systemPrompt gh-copilot-chat-prompt))
             ;; Per-instance model selection
-            (when-let* ((model (copilot-chat--model)))
-              (list :model model))
+            (copilot-chat--model-param)
             ;; Workspace folders — use copilot--path-to-uri for Windows support
             (list :workspaceFolders
                   (vconcat
@@ -632,9 +631,9 @@ Sends `conversation/turn' to the Copilot Language Server."
            'conversation/turn
            (append (list :workDoneToken token
                          :conversationId (gh-copilot-chat-lsp-conversation-id backend)
-                         :model (copilot-chat--model) ; avoid error "[chat] Error processing turn Error: Model is not specified"
                          :message message
                          :source source)
+                   (copilot-chat--model-param) ; avoid error "[chat] Error processing turn Error: Model is not specified"
                    (when doc (list :doc doc))
                    (copilot-chat--references-param)
                    )
